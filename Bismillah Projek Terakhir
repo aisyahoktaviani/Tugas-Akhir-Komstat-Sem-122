@@ -161,3 +161,64 @@ server <- function(input, output, session) {
       )
     }
   })
+
+
+
+output$download_report <- downloadHandler(
+  filename = function() {
+    paste("Laporan_Analisis_", Sys.Date(), ".docx", sep = "")
+  },
+  content = function(file) {
+    # Memunculkan progress message menggunakan showNotification
+    notification_id <- showNotification(
+      "🔄 Sedang mempersiapkan laporan Word...", 
+      duration = NULL, 
+      type = "message"
+    )
+    
+    tryCatch({
+      # Buat file RMD sementara
+      tempReport <- file.path(tempdir(), "report.Rmd")
+      
+      # Buat isi dari RMD ke file sementara
+      writeLines(rmd_content, tempReport)
+      
+      # Render dokumen dengan parameter
+      rmarkdown::render(
+        input = tempReport,
+        output_format = rmarkdown::word_document(),
+        output_file = file,
+        params = list(
+          spearman = values$spearman_result,
+          cramer = values$cramer_result,
+          correlation = values$correlation_matrix
+        ),
+        envir = new.env(parent = globalenv()),
+        quiet = TRUE
+      )
+      
+      # Menghilangkan notifikasi progres
+      removeNotification(notification_id)
+      
+      # Memunculkan notifikasi berhasil
+      showNotification(
+        "✅ Laporan Word berhasil diunduh!", 
+        duration = 5, 
+        type = "message"
+      )
+      
+    }, error = function(e) {
+      # Menghilangkan notifikasi progres
+      removeNotification(notification_id)
+      
+      # Memunculkan notifikasi error
+      showNotification(
+        paste("❌ Error membuat laporan:", e$message), 
+        duration = 10, 
+        type = "error"
+      )
+      
+      print(paste("Debug error:", e$message))  # For debugging
+    })
+  }
+)
