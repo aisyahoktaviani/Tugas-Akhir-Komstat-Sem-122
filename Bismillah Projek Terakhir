@@ -748,4 +748,31 @@ output$download_report <- downloadHandler(
       )
     }
   })
-  
+
+# Template buat laporan di Word
+  rmd_content <- '---
+title: "Laporan Analisis Korelasi dan Asosiasi"
+author: "Aplikasi Uji Korelasi & Asosiasi"
+date: "r Sys.Date()"
+output: 
+  word_document:
+    reference_docx: NULL
+params:
+  spearman: NULL
+  cramer: NULL
+  correlation: NULL
+---
+
+{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(knitr)
+library(ggplot2)
+library(reshape2)
+
+
+# Executive Summary
+
+Laporan ini menyajikan hasil analisis hubungan antar variabel menggunakan:
+
+1. *Uji Korelasi Spearman* untuk menganalisis hubungan antara variabel numerik
+2. *Uji Asosiasi Cramér\'s V* untuk menganalisis hubungan antara variabel kategorik
