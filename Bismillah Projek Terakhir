@@ -9,6 +9,40 @@ library(rstatix)
 library(bslib)
 library(DT)
 
+#UI
+ui <- fluidPage(
+  useShinyFeedback(),
+  theme = bs_theme(
+    bootswatch = "superhero",
+    primary = "#2E8B57",
+    success = "#28A745",
+    info = "#17A2B8",
+    warning = "#FFC107",
+    danger = "#DC3545"
+  ),
+  
+  # Custom CSS untuk mengatur warna teks di verbatimTextOutput
+  tags$head(
+    tags$style(HTML("
+      .shiny-text-output {
+        background-color: #f8f9fa !important;
+        color: #000000 !important;
+        border: 1px solid #dee2e6 !important;
+        border-radius: 8px !important;
+        padding: 15px !important;
+        font-family: 'Courier New', monospace !important;
+        font-weight: bold !important;
+        font-size: 14px !important;
+      }
+      
+      pre {
+        color: #000000 !important;
+        background-color: #f8f9fa !important;
+      }
+    "))
+  )
+)
+
 # Server
 server <- function(input, output, session) {
   
