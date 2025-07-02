@@ -8,3 +8,156 @@ library(plotly)
 library(rstatix)
 library(bslib)
 library(DT)
+
+# Server
+server <- function(input, output, session) {
+  
+  # Reactive values untuk menyimpan hasil
+  values <- reactiveValues(
+    data = NULL,
+    spearman_result = NULL,
+    cramer_result = NULL,
+    correlation_matrix = NULL,
+    download_ready = FALSE
+  )
+  
+  # Load data dengan error handling
+  observeEvent(input$file, {
+    tryCatch({
+      ext <- tools::file_ext(input$file$name)
+      if (ext == "csv") {
+        values$data <- read_csv(input$file$datapath, locale = locale(encoding = "UTF-8"))
+      } else if (ext == "xlsx") {
+        values$data <- read_excel(input$file$datapath)
+      }
+      
+      # Reset download status ketika file baru diupload
+      values$download_ready <- FALSE
+      
+      # Gunakan showModal untuk menampilkan pesan sukses
+      showModal(modalDialog(
+        title = "✅ Upload Berhasil",
+        "Data berhasil dimuat!",
+        easyClose = TRUE,
+        footer = modalButton("OK")
+      ))
+      
+    }, error = function(e) {
+      # Gunakan showModal untuk menampilkan pesan error
+      showModal(modalDialog(
+        title = "❌ Error Loading File",
+        paste("Terjadi kesalahan saat memuat file:", e$message),
+        easyClose = TRUE,
+        footer = modalButton("OK")
+      ))
+    })
+  })
+  
+  output$preview <- DT::renderDataTable({
+    req(values$data)
+    DT::datatable(
+      values$data,
+      options = list(
+        scrollX = TRUE,
+        pageLength = 10,
+        dom = 'Bfrtip',
+        buttons = c('copy', 'csv', 'excel')
+      ),
+      class = "display table-striped table-hover"
+    )
+  })
+  
+  output$summary <- renderPrint({
+    req(values$data)
+    summary(values$data)
+  })
+  
+  output$spearman_ui <- renderUI({
+    req(values$data)
+    num_vars <- names(select_if(values$data, is.numeric))
+    
+    if(length(num_vars) < 2) {
+      div(
+        style = "color: #dc3545; font-style: italic; font-weight: 500;",
+        "Minimal diperlukan 2 variabel numerik untuk uji Spearman"
+      )
+    } else {
+      tagList(
+        div(
+          style = "margin-bottom: 10px;",
+          strong("Variabel Numerik X:", style = "color: #212529; font-size: 14px; font-weight: bold;")
+        ),
+        selectInput(
+          "spearman_x", 
+          label = NULL,
+          choices = num_vars,
+          selected = num_vars[1]
+        ),
+        div(
+          style = "margin-bottom: 10px; margin-top: 15px;",
+          strong("Variabel Numerik Y:", style = "color: #212529; font-size: 14px; font-weight: bold;")
+        ),
+        selectInput(
+          "spearman_y", 
+          label = NULL,
+          choices = num_vars,
+          selected = if(length(num_vars) > 1) num_vars[2] else num_vars[1]
+        )
+      )
+    }
+  })
+  
+  output$cramer_ui <- renderUI({
+    req(values$data)
+    # Identifikasi variabel kategorik dengan lebih robust
+    cat_vars <- names(values$data)[sapply(values$data, function(x) {
+      is.factor(x) || is.character(x) || (is.numeric(x) && length(unique(x)) <= 10)
+    })]
+    
+    if(length(cat_vars) < 2) {
+      div(
+        style = "color: #dc3545; font-style: italic; font-weight: 500;",
+        "Minimal diperlukan 2 variabel kategorik untuk uji Cramér's V"
+      )
+    } else {
+      tagList(
+        div(
+          style = "margin-bottom: 10px;",
+          strong("Variabel Kategorik A:", style = "color: #212529; font-size: 14px; font-weight: bold;")
+        ),
+        selectInput(
+          "cramer_x", 
+          label = NULL,
+          choices = cat_vars,
+          selected = cat_vars[1]
+        ),
+        div(
+          style = "margin-bottom: 10px; margin-top: 15px;",
+          strong("Variabel Kategorik B:", style = "color: #212529; font-size: 14px; font-weight: bold;")
+        ),
+        selectInput(
+          "cramer_y", 
+          label = NULL,
+          choices = cat_vars,
+          selected = if(length(cat_vars) > 1) cat_vars[2] else cat_vars[1]
+        )
+      )
+    }
+  })
+  
+  output$download_ui <- renderUI({
+    # Tampilkan tombol download SETELAH analisis berhasil
+    if(values$download_ready) {
+      downloadButton(
+        "download_report",
+        label = tagList(icon("download"), "Download Laporan Word"),
+        class = "btn btn-info btn-lg",
+        style = "width: 100%; font-weight: bold; margin-top: 10px; padding: 12px; color: white; background-color: #17a2b8; border-color: #17a2b8;"
+      )
+    } else {
+      div(
+        style = "color: #495057; font-style: italic; text-align: center; margin-top: 10px; font-weight: 500;",
+        "Lakukan analisis terlebih dahulu untuk mengunduh laporan"
+      )
+    }
+  })
