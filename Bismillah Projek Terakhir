@@ -149,6 +149,99 @@ output$download_report <- downloadHandler(
   }
 )
 
+ # Validasi input
+  if(is.null(input$spearman_x) || is.null(input$spearman_y) || 
+     is.null(input$cramer_x) || is.null(input$cramer_y)) {
+    showNotification(
+      "❌ Silakan pilih variabel untuk analisis", 
+      duration = 5, 
+      type = "error"
+    )
+    return()
+  }
+  
+  if(input$spearman_x == input$spearman_y) {
+    showNotification(
+      "❌ Pilih variabel yang berbeda untuk uji Spearman", 
+      duration = 5, 
+      type = "error"
+    )
+    return()
+  }
+  
+  if(input$cramer_x == input$cramer_y) {
+    showNotification(
+      "❌ Pilih variabel yang berbeda untuk uji Cramér's V", 
+      duration = 5, 
+      type = "error"
+    )
+    return()
+  }
+  
+  # Memunculkan loading notification
+  loading_id <- showNotification(
+    "🔄 Sedang melakukan analisis, mohon tunggu...", 
+    duration = NULL, 
+    type = "message"
+  )
+  
+  tryCatch({
+    # Spearman Correlation
+    spearman_data <- values$data %>% 
+      select(x = all_of(input$spearman_x), y = all_of(input$spearman_y)) %>% 
+      filter(!is.na(x) & !is.na(y))
+    
+    if(nrow(spearman_data) < 3) {
+      removeNotification(loading_id)
+      showNotification(
+        "❌ Data tidak cukup untuk uji Spearman (minimal 3 observasi)", 
+        duration = 8, 
+        type = "error"
+      )
+      return()
+    }
+    
+    spearman_test <- cor.test(spearman_data$x, spearman_data$y, method = "spearman")
+    
+    values$spearman_result <- list(
+      test = spearman_test, 
+      x = input$spearman_x, 
+      y = input$spearman_y,
+      data = spearman_data
+    )
+    
+    # Cramér's V
+    cramer_data <- values$data %>% 
+      select(x = all_of(input$cramer_x), y = all_of(input$cramer_y)) %>%
+      filter(!is.na(x) & !is.na(y)) %>%
+      mutate(
+        x = as.factor(x),
+        y = as.factor(y)
+      )
+    
+    if(nrow(cramer_data) < 4) {
+      removeNotification(loading_id)
+      showNotification(
+        "❌ Data tidak cukup untuk uji Cramér's V (minimal 4 observasi)", 
+        duration = 8, 
+        type = "error"
+      )
+      return()
+    }
+    
+    tbl <- table(cramer_data$x, cramer_data$y)
+    
+    # Pastikan tidak ada sel dengan frekuensi 0 yang berlebihan
+    if(any(dim(tbl) < 2)) {
+      removeNotification(loading_id)
+      showNotification(
+        "❌ Variabel kategorik harus memiliki minimal 2 kategori", 
+        duration = 8, 
+        type = "error"
+      )
+      return()
+    } 
+
  # Render hasil Spearman
   output$spearman_result <- renderPrint({
     req(values$spearman_result)
@@ -359,3 +452,90 @@ output$download_report <- downloadHandler(
       "</div>"
     ))
   })
+
+# Load data dengan error handling
+  observeEvent(input$file, {
+    tryCatch({
+      ext <- tools::file_ext(input$file$name)
+      if (ext == "csv") {
+        values$data <- read_csv(input$file$datapath, locale = locale(encoding = "UTF-8"))
+      } else if (ext == "xlsx") {
+        values$data <- read_excel(input$file$datapath)
+      }
+      
+      # Reset download status ketika file baru diupload
+      values$download_ready <- FALSE
+      
+      # Gunakan showModal untuk menampilkan pesan sukses
+      showModal(modalDialog(
+        title = "✅ Upload Berhasil",
+        "Data berhasil dimuat!",
+        easyClose = TRUE,
+        footer = modalButton("OK")
+      ))
+      
+    }, error = function(e) {
+      # Gunakan showModal untuk menampilkan pesan error
+      showModal(modalDialog(
+        title = "❌ Error Loading File",
+        paste("Terjadi kesalahan saat memuat file:", e$message),
+        easyClose = TRUE,
+        footer = modalButton("OK")
+      ))
+    })
+  })
+  
+  output$preview <- DT::renderDataTable({
+    req(values$data)
+    DT::datatable(
+      values$data,
+      options = list(
+        scrollX = TRUE,
+        pageLength = 10,
+        dom = 'Bfrtip',
+        buttons = c('copy', 'csv', 'excel')
+      ),
+      class = "display table-striped table-hover"
+    )
+  })
+  
+  output$summary <- renderPrint({
+    req(values$data)
+    summary(values$data)
+  })
+  
+  output$spearman_ui <- renderUI({
+    req(values$data)
+    num_vars <- names(select_if(values$data, is.numeric))
+    
+    if(length(num_vars) < 2) {
+      div(
+        style = "color: #dc3545; font-style: italic; font-weight: 500;",
+        "Minimal diperlukan 2 variabel numerik untuk uji Spearman"
+      )
+    } else {
+      tagList(
+        div(
+          style = "margin-bottom: 10px;",
+          strong("Variabel Numerik X:", style = "color: #212529; font-size: 14px; font-weight: bold;")
+        ),
+        selectInput(
+          "spearman_x", 
+          label = NULL,
+          choices = num_vars,
+          selected = num_vars[1]
+        ),
+        div(
+          style = "margin-bottom: 10px; margin-top: 15px;",
+          strong("Variabel Numerik Y:", style = "color: #212529; font-size: 14px; font-weight: bold;")
+        ),
+        selectInput(
+          "spearman_y", 
+          label = NULL,
+          choices = num_vars,
+          selected = if(length(num_vars) > 1) num_vars[2] else num_vars[1]
+        )
+      )
+    }
+  })
+  
