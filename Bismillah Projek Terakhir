@@ -106,7 +106,136 @@ ui <- fluidPage(
         ),
         uiOutput("download_ui")
       )
+    ),
+
+    mainPanel(
+      width = 8,
+      
+      # Tab panel 
+      tabsetPanel(
+        id = "main_tabs",
+        type = "pills",
+        
+        tabPanel(
+          "Preview Data",
+          icon = icon("table"),
+          br(),
+          div(
+            style = "background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid #dee2e6;",
+            DT::dataTableOutput("preview")
+          )
+        ),
+        
+        tabPanel(
+          "Ringkasan Data",
+          icon = icon("chart-bar"),
+          br(),
+          div(
+            style = "background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid #dee2e6;",
+            verbatimTextOutput("summary")
+          )
+        ),
+        
+        tabPanel(
+          "Hasil Spearman",
+          icon = icon("link"),
+          br(),
+          fluidRow(
+            column(
+              12,
+              div(
+                style = "background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #dee2e6;",
+                h4("Hasil Uji Statistik", style = "color: #212529; margin-bottom: 15px; font-weight: bold;"),
+                verbatimTextOutput("spearman_result")
+              )
+            )
+          ),
+          fluidRow(
+            column(
+              12,
+              div(
+                style = "background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #dee2e6;",
+                h4("Visualisasi", style = "color: #212529; margin-bottom: 15px; font-weight: bold;"),
+                plotlyOutput("spearman_plot", height = "500px")
+              )
+            )
+          ),
+          fluidRow(
+            column(
+              12,
+              div(
+                style = "background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid #dee2e6;",
+                h4("Interpretasi", style = "color: #212529; margin-bottom: 15px; font-weight: bold;"),
+                uiOutput("spearman_interpretation"),
+                br(),
+                uiOutput("spearman_detail")
+              )
+            )
+          )
+        ),
+        
+        tabPanel(
+          "Hasil Cramér's V",
+          icon = icon("puzzle-piece"),
+          br(),
+          fluidRow(
+            column(
+              12,
+              div(
+                style = "background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #dee2e6;",
+                h4("Hasil Uji Statistik", style = "color: #212529; margin-bottom: 15px; font-weight: bold;"),
+                verbatimTextOutput("cramer_result")
+              )
+            )
+          ),
+          fluidRow(
+            column(
+              12,
+              div(
+                style = "background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #dee2e6;",
+                h4("Visualisasi", style = "color: #212529; margin-bottom: 15px; font-weight: bold;"),
+                plotOutput("cramer_plot", height = "500px")
+              )
+            )
+          ),
+          fluidRow(
+            column(
+              12,
+              div(
+                style = "background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid #dee2e6;",
+                h4("Interpretasi", style = "color: #212529; margin-bottom: 15px; font-weight: bold;"),
+                uiOutput("cramer_interpretation"),
+                br(),
+                uiOutput("cramer_detail")
+              )
+            )
+          )
+        ),
+        
+        tabPanel(
+          "Heatmap Korelasi",
+          icon = icon("th"),
+          br(),
+          div(
+            style = "background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid #dee2e6;",
+            h4("Heatmap Korelasi Spearman", style = "color: #212529; margin-bottom: 15px; font-weight: bold;"),
+            verbatimTextOutput("correlation_text"),
+            br(),
+            plotOutput("correlation_heatmap", height = "500px"),
+            br(),
+            uiOutput("heatmap_description")
+          )
+        )
+      )
     )
+  ),
+  
+  # Footer
+  div(
+    style = "background-color: #343a40; color: white; text-align: center; padding: 20px; margin-top: 40px;",
+    p("© 2025 Aplikasi Uji Korelasi & Asosiasi", style = "margin: 0; font-size: 0.9rem; color: white; font-weight: 500;")
+  )
+)
 
 # Server
 server <- function(input, output, session) {
