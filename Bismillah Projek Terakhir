@@ -272,6 +272,57 @@ output$download_report <- downloadHandler(
       return()
     } 
 
+   
+    chisq_test <- chisq.test(tbl, correct = FALSE)
+    n <- sum(tbl)
+    V <- sqrt(chisq_test$statistic / (n * (min(nrow(tbl), ncol(tbl)) - 1)))
+    
+    values$cramer_result <- list(
+      V = as.numeric(V), 
+      pval = chisq_test$p.value, 
+      x = input$cramer_x, 
+      y = input$cramer_y,
+      data = cramer_data,
+      table = tbl,
+      chisq = chisq_test
+    )
+    
+    # Correlation matrix untuk heatmap
+    num_data <- values$data %>% 
+      select_if(is.numeric) %>% 
+      select_if(~ sum(!is.na(.)) >= 3)  # Minimal 3 observasi valid
+    
+    if(ncol(num_data) >= 2) {
+      corr_matrix <- cor(num_data, use = "pairwise.complete.obs", method = "spearman")
+      values$correlation_matrix <- round(corr_matrix, 2)
+    }
+    
+    # Tanda siap download
+    values$download_ready <- TRUE
+    
+    # Menghilangkan loading notification
+    removeNotification(loading_id)
+    
+    # Memunculkan success notification
+    showNotification(
+      "✅ Analisis berhasil diselesaikan! Lihat hasil di tab yang tersedia.", 
+      duration = 8, 
+      type = "message"
+    )
+    
+  }, error = function(e) {
+    # Menghilangkan loading notification
+    removeNotification(loading_id)
+    
+    # Memunculkan error notification
+    showNotification(
+      paste("❌ Error saat analisis:", e$message), 
+      duration = 10, 
+      type = "error"
+    )
+  })
+})
+
  # Render hasil Spearman
   output$spearman_result <- renderPrint({
     req(values$spearman_result)
