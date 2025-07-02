@@ -896,3 +896,50 @@ if (!is.null(params$correlation)) {
 } else {
   cat("Matrix korelasi tidak tersedia\\n")
 }
+
+# Kesimpulan
+
+Berdasarkan analisis yang dilakukan:
+
+{r conclusions}
+conclusions <- c()
+
+if (!is.null(params$spearman)) {
+  test <- params$spearman$test
+  r <- round(test$estimate, 3)
+  pval <- test$p.value
+  strength <- if(abs(r) >= 0.7) "kuat" else if(abs(r) >= 0.3) "sedang" else "lemah"
+  direction <- if(r > 0) "positif" else "negatif"
+  significance <- if(pval < 0.05) "signifikan" else "tidak signifikan"
+  
+  spearman_conclusion <- paste("1. Uji Spearman menunjukkan korelasi", strength, direction, "yang", significance, 
+                              "antara", params$spearman$x, "dan", params$spearman$y, "(rho =", r, ")")
+  conclusions <- c(conclusions, spearman_conclusion)
+}
+
+if (!is.null(params$cramer)) {
+  V <- round(params$cramer$V, 3)
+  pval <- params$cramer$pval
+  strength <- if(V >= 0.5) "kuat" else if(V >= 0.3) "sedang" else if(V >= 0.1) "lemah" else "sangat lemah"
+  significance <- if(pval < 0.05) "signifikan" else "tidak signifikan"
+  
+  cramer_conclusion <- paste("2. Uji Cramér\'s V menunjukkan asosiasi", strength, "yang", significance,
+                            "antara", params$cramer$x, "dan", params$cramer$y, "(V =", V, ")")
+  conclusions <- c(conclusions, cramer_conclusion)
+}
+
+if (length(conclusions) > 0) {
+  for (conclusion in conclusions) {
+    cat(conclusion, "\\n\\n")
+  }
+} else {
+  cat("Tidak ada hasil analisis yang tersedia untuk disimpulkan.")
+}
+
+
+---
+
+Laporan ini dibuat secara otomatis oleh Aplikasi Uji Korelasi & Asosiasi
+'
+
+}
