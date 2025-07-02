@@ -776,3 +776,54 @@ Laporan ini menyajikan hasil analisis hubungan antar variabel menggunakan:
 
 1. *Uji Korelasi Spearman* untuk menganalisis hubungan antara variabel numerik
 2. *Uji Asosiasi Cramér\'s V* untuk menganalisis hubungan antara variabel kategorik
+
+# Hasil Uji Korelasi Spearman
+
+{r spearman-results}
+if (!is.null(params$spearman)) {
+  test <- params$spearman$test
+  cat("Variabel yang dianalisis:", params$spearman$x, "vs", params$spearman$y, "\\n")
+  cat("Metode:", test$method, "\\n")
+  cat("Koefisien rho:", round(test$estimate, 4), "\\n")
+  cat("p-value:", format(test$p.value, scientific = TRUE), "\\n")
+  
+  # Interpretasi
+  r <- round(test$estimate, 3)
+  pval <- test$p.value
+  strength <- if(abs(r) >= 0.7) "kuat" else if(abs(r) >= 0.3) "sedang" else "lemah"
+  direction <- if(r > 0) "positif" else "negatif"
+  significance <- if(pval < 0.05) "signifikan" else "tidak signifikan"
+  
+  cat("\\nInterpretasi:\\n")
+  cat("- Kekuatan korelasi:", strength, "\\n")
+  cat("- Arah korelasi:", direction, "\\n")  
+  cat("- Signifikansi:", significance, "(α = 0.05)\\n")
+} else {
+  cat("Data Spearman tidak tersedia")
+}
+
+
+---
+
+# Hasil Uji Asosiasi Cramér\'s V
+
+{r cramer-results}
+if (!is.null(params$cramer)) {
+  cat("Variabel yang dianalisis:", params$cramer$x, "vs", params$cramer$y, "\\n")
+  cat("Cramér\'s V:", round(params$cramer$V, 4), "\\n")
+  cat("Chi-square:", round(params$cramer$chisq$statistic, 4), "\\n")
+  cat("p-value:", format(params$cramer$pval, scientific = TRUE), "\\n")
+  cat("Degrees of freedom:", params$cramer$chisq$parameter, "\\n")
+  
+  # Interpretasi
+  V <- round(params$cramer$V, 3)
+  pval <- params$cramer$pval
+  strength <- if(V >= 0.5) "kuat" else if(V >= 0.3) "sedang" else if(V >= 0.1) "lemah" else "sangat lemah"
+  significance <- if(pval < 0.05) "signifikan" else "tidak signifikan"
+  
+  cat("\\nInterpretasi:\\n")
+  cat("- Kekuatan asosiasi:", strength, "\\n")
+  cat("- Signifikansi:", significance, "(α = 0.05)\\n")
+} else {
+  cat("Data Cramér\'s V tidak tersedia")
+}
