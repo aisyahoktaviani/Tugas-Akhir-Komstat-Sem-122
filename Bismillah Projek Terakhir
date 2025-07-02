@@ -383,3 +383,90 @@ output$download_report <- downloadHandler(
       "</div>"
     ))
   })
+
+# Load data dengan error handling
+  observeEvent(input$file, {
+    tryCatch({
+      ext <- tools::file_ext(input$file$name)
+      if (ext == "csv") {
+        values$data <- read_csv(input$file$datapath, locale = locale(encoding = "UTF-8"))
+      } else if (ext == "xlsx") {
+        values$data <- read_excel(input$file$datapath)
+      }
+      
+      # Reset download status ketika file baru diupload
+      values$download_ready <- FALSE
+      
+      # Gunakan showModal untuk menampilkan pesan sukses
+      showModal(modalDialog(
+        title = "✅ Upload Berhasil",
+        "Data berhasil dimuat!",
+        easyClose = TRUE,
+        footer = modalButton("OK")
+      ))
+      
+    }, error = function(e) {
+      # Gunakan showModal untuk menampilkan pesan error
+      showModal(modalDialog(
+        title = "❌ Error Loading File",
+        paste("Terjadi kesalahan saat memuat file:", e$message),
+        easyClose = TRUE,
+        footer = modalButton("OK")
+      ))
+    })
+  })
+  
+  output$preview <- DT::renderDataTable({
+    req(values$data)
+    DT::datatable(
+      values$data,
+      options = list(
+        scrollX = TRUE,
+        pageLength = 10,
+        dom = 'Bfrtip',
+        buttons = c('copy', 'csv', 'excel')
+      ),
+      class = "display table-striped table-hover"
+    )
+  })
+  
+  output$summary <- renderPrint({
+    req(values$data)
+    summary(values$data)
+  })
+  
+  output$spearman_ui <- renderUI({
+    req(values$data)
+    num_vars <- names(select_if(values$data, is.numeric))
+    
+    if(length(num_vars) < 2) {
+      div(
+        style = "color: #dc3545; font-style: italic; font-weight: 500;",
+        "Minimal diperlukan 2 variabel numerik untuk uji Spearman"
+      )
+    } else {
+      tagList(
+        div(
+          style = "margin-bottom: 10px;",
+          strong("Variabel Numerik X:", style = "color: #212529; font-size: 14px; font-weight: bold;")
+        ),
+        selectInput(
+          "spearman_x", 
+          label = NULL,
+          choices = num_vars,
+          selected = num_vars[1]
+        ),
+        div(
+          style = "margin-bottom: 10px; margin-top: 15px;",
+          strong("Variabel Numerik Y:", style = "color: #212529; font-size: 14px; font-weight: bold;")
+        ),
+        selectInput(
+          "spearman_y", 
+          label = NULL,
+          choices = num_vars,
+          selected = if(length(num_vars) > 1) num_vars[2] else num_vars[1]
+        )
+      )
+    }
+  })
+  
